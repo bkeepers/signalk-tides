@@ -28,9 +28,9 @@ module.exports = function(app) {
   ];
 
   const plugin = {
-    id: "tides-api",
-    name: "Tide APIs",
-    description: "Plugin that fetches tide data from online sources",
+    id: "tides",
+    name: "Tides",
+    description: "Tidal predictions for the vessel's position from various online sources.",
     schema: {
       title: "Tides API",
       type: "object",

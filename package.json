@@ -1,30 +1,35 @@
 {
-  "name": "signalk-tides-api",
-  "version": "0.3.0",
-  "description": "Plugin that derives tides from online sources to signalK format",
+  "name": "signalk-tides",
+  "version": "1.0.0",
+  "description": "Tidal predictions for the vessel's position from various online sources.",
   "main": "src/index.js",
   "scripts": {
     "test": "$NODE $npm_package_main"
   },
   "keywords": [
-    "signalk-node-server-plugin"
+    "signalk-node-server-plugin",
+    "signalk-category-cloud"
   ],
   "author": {
-    "name": "Joachim Bakke"
+    "name": "Brandon Keepers",
+    "url": "https://github.com/bkeepers"
   },
   "contributors": [
+    {
+      "name": "Joachim Bakke"
+    },
     {
       "name": "Scott Bender"
     }
   ],
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "geolib": "^2.0.24",
     "moment": "^2.27.0"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/joabakk/signalk-tides-api"
+    "url": "https://github.com/bkeepers/signalk-tides"
   },
   "signalk-plugin-enabled-by-default": true
 }
