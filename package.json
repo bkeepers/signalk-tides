@@ -20,9 +20,7 @@
   "license": "ISC",
   "dependencies": {
     "geolib": "^2.0.24",
-    "lodash": "^4.17.21",
-    "moment": "^2.27.0",
-    "request": "^2.88.2"
+    "moment": "^2.27.0"
   },
   "repository": {
     "type": "git",

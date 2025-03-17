@@ -1,5 +1,6 @@
 /*
  * Copyright 2017 Scott Bender <scott@scottbender.net> and Joachim Bakke
+ * Copyright 2025 Brandon Keepers <brandon@opensoul.org>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +22,11 @@ module.exports = function(app) {
   const defaultPeriod = 60; // 1 hour
   let unsubscribes = [];
 
+  const sources = [
+    noaa(app),
+    worldtides(app),
+  ];
+
   const plugin = {
     id: "tides-api",
     name: "Tide APIs",
@@ -29,6 +35,17 @@ module.exports = function(app) {
       title: "Tides API",
       type: "object",
       properties: {
+        source: {
+          title: "Data source",
+          type: "string",
+          "anyOf": sources.map(({ id, title }) => ({
+            const: id,
+            title
+          })),
+          default: sources[0].id,
+        },
+        // Update plugin schema with sources
+        ...sources.reduce((properties, source) => Object.assign(properties, source.properties ?? {}), {}),
         period: {
           title: "Update frequency",
           type: "number",
@@ -44,26 +61,17 @@ module.exports = function(app) {
     }
   };
 
-  const sources = [
-    worldtides(app, plugin),
-    noaa(app, plugin)
-  ];
-
-  // Update plugin schema with sources
-  sources.forEach(source => {
-    Object.assign(plugin.schema.properties, {
-      [source.optionKey]: {
-        title: source.title,
-        type: "boolean",
-        default: false
-      },
-      ...(source.properties ?? {})
-    });
-  });
-
-  plugin.start = function(props) {
+  plugin.start = async function(props) {
     app.debug("Starting tides-api: " + JSON.stringify(props));
-    plugin.properties = props;
+
+    // Use the selected source, or the first one if not specified
+    const source = sources.find(source => source.id === props.source) || sources[0];
+
+    // Load the selected source
+    const provider = await source.start(props);
+
+    // Register the source as a resource provider
+    app.registerResourceProvider({ type: "tides", methods: provider });
 
     app.subscriptionmanager.subscribe(
       {
@@ -81,7 +89,7 @@ module.exports = function(app) {
         app.error("Error:" + subscriptionError);
       },
       (delta) => {
-        delta.updates.forEach(({values}) => {
+        delta.updates.forEach(({ values }) => {
           values.forEach(({ path, value }) => {
             if (path === "navigation.position") {
               performUpdate(value);
@@ -91,47 +99,50 @@ module.exports = function(app) {
       }
     );
 
-    // Perform initial update on startup
-    performUpdate(app.getSelfPath("navigation.position.value"));
-  }
+    async function performUpdate() {
+      try {
+        const { extremes } = await provider.listResources();
 
-  async function performUpdate(position) {
-    if (!position) {
-      app.setPluginStatus("No position available");
-      return;
+        // Use server date, or current date if not available
+        const now = new Date(app.getSelfPath("navigation.datetime.value") ?? Date.now());
+
+        const nextTide = {};
+
+        extremes.forEach(({ type, value, time }) => {
+          // Get the first tide of this type after now
+          if (!nextTide[type] && new Date(time) > now) {
+            nextTide[type] = { time, value };
+          }
+        });
+
+        const delta = {
+          context: "vessels." + app.selfId,
+          updates: [
+            {
+              timestamp: now.toISOString(),
+              values: Object.entries(nextTide).flatMap(
+                ([type, { time, value }]) => {
+                  return [
+                    { path: `environment.tide.height${type}`, value: value },
+                    { path: `environment.tide.time${type}`, value: time },
+                  ];
+                }
+              ),
+            },
+          ],
+        };
+
+        app.debug("Sending delta: " + JSON.stringify(delta));
+        app.handleMessage(plugin.id, delta);
+        app.setPluginStatus("Updated tide data");
+      } catch (e) {
+        app.setPluginError(e.message);
+        app.error(e);
+      }
     }
 
-    await Promise.all(
-      sources.map(async (source) => {
-        if (!plugin.properties[source.optionKey]) {
-          app.debug(`${source.optionKey} is not enabled, skipping...`);
-          return;
-        }
-
-        try {
-          const values = await source.calculator(position);
-          if (!values) return;
-
-          const delta = {
-            context: "vessels." + app.selfId,
-            updates: [
-              {
-                timestamp: new Date().toISOString(),
-                values: values,
-              },
-            ],
-          };
-
-          app.debug("Sending delta: " + JSON.stringify(delta));
-          app.handleMessage(plugin.id, delta);
-        } catch (err) {
-          app.setPluginError(err.message);
-          app.error(err.message);
-        }
-      })
-    );
-
-    app.setPluginStatus("Updated tide data");
+    // Perform initial update on startup
+    performUpdate();
   }
 
   return plugin;
