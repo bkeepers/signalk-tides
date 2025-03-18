@@ -63,21 +63,18 @@ class NoaaProvider {
     this.stations = stations;
   }
 
-  async listResources(params) {
+  async listResources({ date = moment().subtract(1, "days") } = {}) {
     const position = this.app.getSelfPath("navigation.position.value");
     if (!position) throw new Error("no position");
 
     const station = this.stations.closestTo(position);
 
-    // Use server date, or current date if not available
-    const now = new Date(this.app.getSelfPath("navigation.datetime.value") ?? Date.now());
-
     const endpoint = new URL(dataGetterUrl);
     endpoint.search = new URLSearchParams({
       product: "predictions",
       application: "signalk.org/node-server",
-      begin_date: moment(now).subtract(1, "day").format("YYYYMMDD"),
-      end_date: moment(now).add(1, "day").format("YYYYMMDD"),
+      begin_date: moment(date).format("YYYYMMDD"),
+      end_date: moment(date).add(7, "days").format("YYYYMMDD"),
       datum,
       station: station.reference_id,
       time_zone: "gmt",
@@ -90,7 +87,8 @@ class NoaaProvider {
 
     try {
       const res = await fetch(endpoint);
-      if (!res.ok) throw new Error("Failed to fetch NOAA tides: " + res.statusText);
+      if (!res.ok)
+        throw new Error("Failed to fetch NOAA tides: " + res.statusText);
       const body = await res.json();
       this.app.debug("NOAA response: \n" + JSON.stringify(body, null, 2));
 
@@ -103,13 +101,13 @@ class NoaaProvider {
           latitude: station.lat,
           longitude: station.lng,
         },
-        extremes: body.predictions.map(({t, v, type}) => {
+        extremes: body.predictions.map(({ t, v, type }) => {
           return {
             type: type === "H" ? "High" : "Low",
             value: Number(v),
             time: new Date(`${t}Z`).toISOString(),
           };
-        })
+        }),
       };
 
       return tides;

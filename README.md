@@ -19,10 +19,21 @@ It publishes the following [tide data](https://signalk.org/specification/1.7.0/d
 * `environment.tide.heightLow`
 * `environment.tide.timeLow`
 
-It also registers a `tides` resource, which returns tide predictions for the next 7 days for the vessel's position:
+### Tides resource
+
+It also registers a `tides` resource, which returns tide predictions for yesterday and the next 6 days for the vessel's position.
 
 ```
 $ curl http://localhost:3000/signalk/v2/api/resources/tides
+```
+
+##### Request Parameters
+
+* `date` (optional) - the date for which to get the tide predictions in the format `YYYY-MM-DD`. Default: yesterday's date.
+
+##### Response
+
+```json
 {
    "id" : "9710441",
    "name" : "Nurse Channel",
@@ -94,6 +105,8 @@ $ curl http://localhost:3000/signalk/v2/api/resources/tides
    ]
 }
 ```
+
+
 
 ## Sources
 

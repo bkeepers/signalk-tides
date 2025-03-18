@@ -1,3 +1,5 @@
+const moment = require('moment');
+
 module.exports = function (app, plugin) {
   return {
     id: 'WorldTides.info',
@@ -12,15 +14,14 @@ module.exports = function (app, plugin) {
     start(options) {
       app.debug("Using WorldTides API");
       return {
-        async listResources() {
+        async listResources({ date = moment().subtract(1, "days") } = {}) {
           const endPoint = new URL("https://www.worldtides.info/api");
 
           const position = app.getSelfPath("navigation.position.value");
-
           if (!position) throw new Error("no position");
 
           endPoint.search = new URLSearchParams({
-            date: "today",
+            date: moment(date).format("YYYY-MM-DD"),
             datum: "CD",
             days: 7,
             extremes: true,
@@ -31,11 +32,11 @@ module.exports = function (app, plugin) {
 
           app.debug("Fetching worldtides", endPoint.toString());
 
-          // return fetch(endPoint).then(async (res) => {
           const res = await fetch(endPoint);
           if(!res.ok) throw new Error('Failed to fetch worldtides: ' + res.statusText);
 
           const data = await res.json();
+          app.debug(JSON.stringify(data, null, 2));
 
           if (data.status != 200) throw new Error("worldtides data: " + data.error ? data.error : "none");
 
