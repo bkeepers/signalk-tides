@@ -112,7 +112,7 @@ $ curl http://localhost:3000/signalk/v2/api/resources/tides
 
 - [NOAA](https://tidesandcurrents.noaa.gov/web_services_info.html) (US only)
 - [WorldTides API](https://www.worldtides.info/) (requires an API key)
-- [StormGlass.io](https://www.stormglass.io/) (requires an API key)
+- [StormGlass.io](https://stormglass.io/) (requires an API key)
 
 ## License
 
