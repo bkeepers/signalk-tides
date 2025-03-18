@@ -15,7 +15,7 @@ module.exports = function (app, plugin) {
       app.debug("Using WorldTides API");
       return {
         async listResources({ date = moment().subtract(1, "days") } = {}) {
-          const endPoint = new URL("https://www.worldtides.info/api");
+          const endPoint = new URL("https://www.worldtides.info/api/v3");
 
           const position = app.getSelfPath("navigation.position.value");
           if (!position) throw new Error("no position");
