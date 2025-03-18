@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
+const noaa = require('./sources/noaa');
+const stormglass = require('./sources/stormglass');
 const worldtides = require('./sources/worldtides');
-const noaa = require('./sources/noaa')
 
 module.exports = function(app) {
   // Interval to update tide data
@@ -24,6 +25,7 @@ module.exports = function(app) {
 
   const sources = [
     noaa(app),
+    stormglass(app),
     worldtides(app),
   ];
 
