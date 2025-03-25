@@ -7,7 +7,7 @@
     "skipLibCheck": true,
 
     /* Bundler mode */
-    "moduleResolution": "nodenext",
+    "moduleResolution": "node16",
     "isolatedModules": true,
     "moduleDetection": "force",
 

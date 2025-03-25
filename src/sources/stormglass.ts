@@ -16,7 +16,8 @@ export default function (app: SignalKApp): TideSource {
     start(options: { stormglassApiKey: string }) {
       app.debug("Using StormGlass.io API");
 
-      return async ({ date = moment().subtract(1, "days") }: TideForecastParams = {}): Promise<TideForecastResult> => {
+      return async (params: TideForecastParams = {}): Promise<TideForecastResult> => {
+        const { date = moment().subtract(1, "days").toISOString() } = params;
         const endPoint = new URL("https://api.stormglass.io/v2/tide/extremes/point");
 
         const position = app.getSelfPath("navigation.position.value");

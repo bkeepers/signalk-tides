@@ -16,7 +16,8 @@ export default function (app: SignalKApp): TideSource {
     start(options: { worldtidesApiKey: string }) {
       app.debug("Using WorldTides API");
 
-      return async ({ date = moment().subtract(1, "days") }: TideForecastParams = {}): Promise<TideForecastResult> => {
+      return async (params: TideForecastParams = {}): Promise<TideForecastResult> => {
+        const { date = moment().subtract(1, "days") } = params;
         const endPoint = new URL("https://www.worldtides.info/api/v3");
 
         const position = app.getSelfPath("navigation.position.value");
