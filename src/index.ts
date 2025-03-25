@@ -14,26 +14,29 @@
  * limitations under the License.
  */
 
-const noaa = require('./sources/noaa');
-const stormglass = require('./sources/stormglass');
-const worldtides = require('./sources/worldtides');
+import { Plugin } from '@signalk/server-api';
+import noaa from './sources/noaa.js';
+import stormglass from './sources/stormglass.js';
+import worldtides from './sources/worldtides.js';
+import type { SignalKApp, TideSource, Config, TideExtremeType } from './types.js';
 
-module.exports = function(app) {
+export default function (app: SignalKApp): Plugin {
   // Interval to update tide data
   const defaultPeriod = 60; // 1 hour
-  let unsubscribes = [];
+  let unsubscribes: (() => void)[] = [];
 
-  const sources = [
+  const sources: TideSource[] = [
     noaa(app),
     stormglass(app),
     worldtides(app),
   ];
 
-  const plugin = {
+  const plugin: Plugin = {
     id: "tides",
     name: "Tides",
+    // @ts-ignore: todo: fix Plugin type upstream
     description: "Tidal predictions for the vessel's position from various online sources.",
-    schema: {
+    schema: () => ({
       title: "Tides API",
       type: "object",
       properties: {
@@ -56,15 +59,16 @@ module.exports = function(app) {
           minimum: 1,
         },
       }
-    },
+    }),
     stop() {
       unsubscribes.forEach((f) => f());
       unsubscribes = [];
     }
   };
 
-  plugin.start = async function(props) {
+  plugin.start = async function(props: Config) {
     app.debug("Starting tides-api: " + JSON.stringify(props));
+    console.log({ app })
 
     // Use the selected source, or the first one if not specified
     const source = sources.find(source => source.id === props.source) || sources[0];
@@ -73,7 +77,23 @@ module.exports = function(app) {
     const provider = await source.start(props);
 
     // Register the source as a resource provider
-    app.registerResourceProvider({ type: "tides", methods: provider });
+    app.registerResourceProvider({
+      type: "tides",
+      methods: {
+        async listResources(query) {
+          return provider(query)
+        },
+        getResource(): never {
+          throw new Error("Not implemented");
+        },
+        setResource(): never {
+          throw new Error("Not implemented");
+        },
+        deleteResource(): never {
+          throw new Error("Not implemented");
+        }
+      }
+    });
 
     app.subscriptionmanager.subscribe(
       {
@@ -91,10 +111,12 @@ module.exports = function(app) {
         app.error("Error:" + subscriptionError);
       },
       (delta) => {
+        // @ts-ignore: todo: fix Delta type upstream
         delta.updates.forEach(({ values }) => {
-          values.forEach(({ path, value }) => {
+          // @ts-ignore: todo: fix Delta type upstream
+          values.forEach(({ path }) => {
             if (path === "navigation.position") {
-              performUpdate(value);
+              performUpdate();
             }
           });
         });
@@ -103,12 +125,12 @@ module.exports = function(app) {
 
     async function performUpdate() {
       try {
-        const { extremes } = await provider.listResources();
+        const { extremes } = await provider();
 
         // Use server date, or current date if not available
         const now = new Date(app.getSelfPath("navigation.datetime.value") ?? Date.now());
 
-        const nextTide = {};
+        const nextTide: Partial<Record<TideExtremeType, { time: string, value: number }>> = {};
 
         extremes.forEach(({ type, value, time }) => {
           // Get the first tide of this type after now
@@ -137,8 +159,9 @@ module.exports = function(app) {
         app.debug("Sending delta: " + JSON.stringify(delta));
         app.handleMessage(plugin.id, delta);
         app.setPluginStatus("Updated tide data");
-      } catch (e) {
-        app.setPluginError(e.message);
+      } catch (e: unknown) {
+        app.setPluginError((e as any).message);
+        // @ts-ignore: todo this accepts more than just a string: https://github.com/bkeepers/signalk-server/blob/d6845ee1f915e6b729d66d2b08b15dc2e0da8e51/src/interfaces/plugins.ts#L517-L519
         app.error(e);
       }
     }

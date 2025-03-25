@@ -2,9 +2,10 @@
   "name": "signalk-tides",
   "version": "1.1.0",
   "description": "Tidal predictions for the vessel's position from various online sources.",
-  "main": "src/index.js",
+  "type": "module",
+  "exports": "./dist/index.js",
   "scripts": {
-    "test": "$NODE $npm_package_main"
+    "prepare": "tsc -b"
   },
   "keywords": [
     "signalk-node-server-plugin",
@@ -24,6 +25,7 @@
   ],
   "license": "Apache-2.0",
   "dependencies": {
+    "@signalk/server-api": "^2.0",
     "geolib": "^3.3.4",
     "moment": "^2.30.1"
   },
@@ -31,5 +33,10 @@
     "type": "git",
     "url": "git+https://github.com/bkeepers/signalk-tides.git"
   },
-  "signalk-plugin-enabled-by-default": true
+  "signalk-plugin-enabled-by-default": true,
+  "devDependencies": {
+    "@types/node": "^22.13.11",
+    "signalk-server": "^2.13.5",
+    "typescript": "^5.8.2"
+  }
 }
