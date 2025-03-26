@@ -76,7 +76,7 @@ class NoaaProvider {
       begin_date: moment(date).format("YYYYMMDD"),
       end_date: moment(date).add(7, "days").format("YYYYMMDD"),
       datum,
-      station: station.reference_id,
+      station: station.id,
       time_zone: "gmt",
       units: "metric",
       interval: "hilo",
@@ -96,7 +96,7 @@ class NoaaProvider {
 
       let tides = {
         name: station.name,
-        id: station.reference_id,
+        id: station.id,
         position: {
           latitude: station.lat,
           longitude: station.lng,
@@ -112,7 +112,8 @@ class NoaaProvider {
 
       return tides;
     } catch (err) {
-      reportError(error);
+      this.app.setPluginError("Failed to fetch NOAA tides: " + err.message);
+      this.app.error(err);
       res.status(404).send("error");
     }
   }
