@@ -30,7 +30,7 @@ export default function (app: SignalKApp): TideSource {
           begin_date: moment(date).format("YYYYMMDD"),
           end_date: moment(date).add(7, "days").format("YYYYMMDD"),
           datum,
-          station: station.reference_id,
+          station: station.id,
           time_zone: "gmt",
           units: "metric",
           interval: "hilo",
@@ -61,9 +61,11 @@ export default function (app: SignalKApp): TideSource {
               time: new Date(`${t}Z`).toISOString(),
             })),
           };
-        } catch (error) {
-          app.debug(`Error fetching tides: ${error}`);
-          throw error;
+        } catch (err) {
+          app.setPluginError(`Failed to fetch NOAA tides: ${err}`);
+          // @ts-expect-error
+          app.error(err);
+          throw err;
         }
       }
     }
