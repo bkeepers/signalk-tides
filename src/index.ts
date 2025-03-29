@@ -20,7 +20,7 @@ import stormglass from './sources/stormglass.js';
 import worldtides from './sources/worldtides.js';
 import type { SignalKApp, TideSource, Config, TideExtremeType } from './types.js';
 
-export default function (app: SignalKApp): Plugin {
+export = function (app: SignalKApp): Plugin {
   // Interval to update tide data
   const defaultPeriod = 60; // 1 hour
   let unsubscribes: (() => void)[] = [];

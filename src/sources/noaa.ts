@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs/promises';
-import geolib from 'geolib';
+import { getDistance } from 'geolib';
 import moment from 'moment';
 import type { SignalKApp, TideForecastParams, TideForecastResult, TideSource } from '../types.js';
 import type { NoaaPredictionApiResponse, NoaaStation, NoaaStationsApiResponse, NoaaTidePrediction } from '../types/noaa.js';
@@ -102,7 +102,7 @@ class StationList extends Map<string, NoaaStation> {
   near(position: { latitude: number; longitude: number }, limit = 10): NoaaStation[] {
     const stationsWithDistances = Array.from(this.values()).map((station) => ({
       ...station,
-      distance: geolib.getDistance(position, { latitude: station.lat, longitude: station.lng })
+      distance: getDistance(position, { latitude: station.lat, longitude: station.lng })
     }));
 
     return stationsWithDistances.sort((a, b) => a.distance - b.distance).slice(0, limit);
