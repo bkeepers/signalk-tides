@@ -1,9 +1,9 @@
 import { ServerAPI } from '@signalk/server-api';
-// FIXME: remove these dependencies
+// TODO[TS]: remove these once @signalk/server-api has all the types needed.
 import { WithConfig } from 'signalk-server/lib/app.js';
 import { SignalKServer } from 'signalk-server/lib/types.js';
 
-// FIXME: Fix this in the upstream types
+// TODO[TS]: Fix this in the upstream types
 export type SignalKApp = ServerAPI & SignalKServer & WithConfig;
 
 export type OptionalPromise<T> = T | Promise<T>;
