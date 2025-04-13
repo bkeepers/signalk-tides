@@ -14,6 +14,12 @@ export interface TideForecastParams {
   date?: string;
 }
 
+export interface TideExtreme {
+  time: string;
+  value: number;
+  type: TideExtremeType;
+}
+
 export interface TideForecastResult {
   station: {
     name: string;
@@ -22,7 +28,7 @@ export interface TideForecastResult {
       longitude: number;
     };
   }
-  extremes: { time: string; value: number; type: TideExtremeType; }[];
+  extremes: TideExtreme[];
 }
 
 export type TideForecastFunction = (params?: TideForecastParams) => OptionalPromise<TideForecastResult>;
