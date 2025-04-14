@@ -36,11 +36,13 @@ export type TideForecastFunction = (params?: TideForecastParams) => OptionalProm
 export interface TideSource {
   id: string;
   title: string;
-  start: (props: any) => OptionalPromise<TideForecastFunction>;
-  properties?: any; // TODO: use schema?
+  start: (props: Config) => OptionalPromise<TideForecastFunction>;
+  properties?: unknown; // TODO: use schema?
 }
 
 export type Config = {
   source?: string;
   period?: number;
+  worldtidesApiKey?: string;
+  stormglassApiKey?: string;
 };

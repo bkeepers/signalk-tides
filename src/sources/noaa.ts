@@ -63,7 +63,7 @@ export default function (app: SignalKApp): TideSource {
           };
         } catch (err) {
           app.setPluginError(`Failed to fetch NOAA tides: ${err}`);
-          // @ts-expect-error
+          // @ts-expect-error: app.error should accept more than just a string
           app.error(err);
           throw err;
         }
@@ -80,7 +80,8 @@ class StationList extends Map<string, NoaaStation> {
     try {
       data = JSON.parse(await fs.readFile(filename, 'utf-8'));
       app.debug("NOAA: Loaded cached tide stations from " + filename);
-    } catch (_) {
+    } catch (e) {
+      app.debug(`NOAA: failed to load cached tide stations: ${e}`)
       app.debug('NOAA: Downloading tide stations');
       const res = await fetch(stationsUrl);
       if (!res.ok) throw new Error(`Failed to download stations: ${res.statusText}`);

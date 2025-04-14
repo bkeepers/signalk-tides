@@ -34,7 +34,7 @@ export = function (app: SignalKApp): Plugin {
   const plugin: Plugin = {
     id: "tides",
     name: "Tides",
-    // @ts-ignore: TODO[TS]: fix Plugin type upstream
+    // @ts-expect-error: TODO[TS]: fix Plugin type upstream
     description: "Tidal predictions for the vessel's position from various online sources.",
     schema: () => ({
       title: "Tides API",
@@ -110,9 +110,9 @@ export = function (app: SignalKApp): Plugin {
         app.error("Error:" + subscriptionError);
       },
       (delta) => {
-        // @ts-ignore: TODO[TS]: fix Delta type upstream
+        // @ts-expect-error: TODO[TS]: fix Delta type upstream
         delta.updates.forEach(({ values }) => {
-          // @ts-ignore: TODO[TS]: fix Delta type upstream
+          // @ts-expect-error: TODO[TS]: fix Delta type upstream
           values.forEach(({ path }) => {
             if (path === "navigation.position") {
               performUpdate();
@@ -159,8 +159,9 @@ export = function (app: SignalKApp): Plugin {
         app.handleMessage(plugin.id, delta);
         app.setPluginStatus("Updated tide data");
       } catch (e: unknown) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         app.setPluginError((e as any).message);
-        // @ts-ignore: TODO[TS] this accepts more than just a string: https://github.com/bkeepers/signalk-server/blob/d6845ee1f915e6b729d66d2b08b15dc2e0da8e51/src/interfaces/plugins.ts#L517-L519
+        // @ts-expect-error: TODO[TS] this accepts more than just a string: https://github.com/bkeepers/signalk-server/blob/d6845ee1f915e6b729d66d2b08b15dc2e0da8e51/src/interfaces/plugins.ts#L517-L519
         app.error(e);
       }
     }

@@ -78,7 +78,7 @@ export function TideChart({
       .y(d => y.current!(d.value))
 
     if (gx.current) d3.select(gx.current).call(d3.axisBottom(x.current));
-  }, [data, height])
+  }, [data, height, width, marginBottom, marginLeft, marginRight, marginTop])
 
   useEffect(() => {
     now.current?.scrollIntoView({ block: 'center', inline: 'center' })

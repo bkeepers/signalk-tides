@@ -13,7 +13,7 @@ export default function (app: SignalKApp): TideSource {
       }
     },
 
-    start(options: { worldtidesApiKey: string }) {
+    start({ worldtidesApiKey = '' } = {}) {
       app.debug("Using WorldTides API");
 
       return async (params: TideForecastParams = {}): Promise<TideForecastResult> => {
@@ -28,7 +28,7 @@ export default function (app: SignalKApp): TideSource {
           datum: "CD",
           days: "7",
           extremes: "true",
-          key: options.worldtidesApiKey,
+          key: worldtidesApiKey,
           lat: position.latitude,
           lon: position.longitude,
         }).toString();
@@ -36,7 +36,7 @@ export default function (app: SignalKApp): TideSource {
         app.debug("Fetching worldtides: " + endPoint.toString());
 
         const res = await fetch(endPoint);
-        if(!res.ok) throw new Error('Failed to fetch worldtides: ' + res.statusText);
+        if (!res.ok) throw new Error('Failed to fetch worldtides: ' + res.statusText);
 
         const data = await res.json() as WorldTidesPredictionApiResponse;
         app.debug(JSON.stringify(data, null, 2));
@@ -51,7 +51,7 @@ export default function (app: SignalKApp): TideSource {
               longitude: data.responseLon,
             },
           },
-          extremes: data.extremes.map(({ type, dt, height}) => {
+          extremes: data.extremes.map(({ type, dt, height }) => {
             return {
               type,
               value: height,

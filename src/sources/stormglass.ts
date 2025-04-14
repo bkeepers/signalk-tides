@@ -13,7 +13,7 @@ export default function (app: SignalKApp): TideSource {
       }
     },
 
-    start(options: { stormglassApiKey: string }) {
+    start({ stormglassApiKey } = {}) {
       app.debug("Using StormGlass.io API");
 
       return async (params: TideForecastParams = {}): Promise<TideForecastResult> => {
@@ -34,10 +34,10 @@ export default function (app: SignalKApp): TideSource {
         app.debug("Fetching StormGlass.io: " + endPoint.toString());
 
         const res = await fetch(endPoint, {
-          headers: { Authorization: options.stormglassApiKey },
+          headers: { Authorization: stormglassApiKey ?? '' },
         });
 
-        if(!res.ok) throw new Error('Failed to fetch StormGlass.io: ' + res.statusText);
+        if (!res.ok) throw new Error('Failed to fetch StormGlass.io: ' + res.statusText);
 
         const data = await res.json() as StormGlassApiResponse;
         app.debug(JSON.stringify(data, null, 2));
@@ -50,7 +50,7 @@ export default function (app: SignalKApp): TideSource {
               longitude: data.meta.station.lng,
             },
           },
-          extremes: data.data.map(({ type, time, height}) => {
+          extremes: data.data.map(({ type, time, height }) => {
             return {
               type: type === "high" ? "High" : "Low",
               value: height,
