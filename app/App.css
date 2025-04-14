@@ -12,15 +12,8 @@ html {
 }
 
 body {
-  display: flex;
-  flex: 1;
   margin: 0;
-  min-width: 320px;
   min-height: 100vh;
-}
-
-.flex-1 {
-  flex: 1;
 }
 
 #app {
@@ -28,7 +21,6 @@ body {
   color: #fff;
   display: flex;
   flex-direction: column;
-  flex: 1;
 }
 
 header {
@@ -47,6 +39,7 @@ h1 {
 .TideChart {
   width: 100vw;
   overflow-x: auto;
+  overflow-y: hidden;
   flex: 1;
 }
 
@@ -129,4 +122,18 @@ h1 {
 .Position__Direction {
   width: 1.5rem;
   text-align: left;
+}
+
+footer {
+  background-color: rgba(0, 0, 0, 0.2);
+  color: rgba(255, 255, 255, 0.4);
+  padding: 1rem 2rem;
+  font-size: 0.8rem;
+  display: flex;
+  gap: 0.3rem;
+}
+
+footer a {
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
 }
