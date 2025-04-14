@@ -1,5 +1,6 @@
+@import "tailwindcss";
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   color-scheme: dark;
   font-weight: 400;
   text-rendering: optimizeLegibility;
@@ -14,26 +15,6 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-}
-
-#app {
-  height: 100vh;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-}
-
-header {
-  padding: 2rem;
-  margin-bottom: 4rem;
-}
-
-h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: -0.05rem;
-  margin: 0;
-  flex: 1;
 }
 
 .TideChart {
@@ -88,9 +69,6 @@ h1 {
   font-weight: 600;
 }
 
-.TideChart__Time {
-}
-
 .TideChart__LowWater {
   stroke: rgba(255, 255, 255, 0.25);
   stroke-width: 3;
@@ -124,16 +102,6 @@ h1 {
   text-align: left;
 }
 
-footer {
-  background-color: rgba(0, 0, 0, 0.2);
-  color: rgba(255, 255, 255, 0.4);
-  padding: 1rem 2rem;
-  font-size: 0.8rem;
-  display: flex;
-  gap: 0.3rem;
-}
-
-footer a {
-  color: rgba(255, 255, 255, 0.6);
-  text-decoration: none;
+.icon {
+  @apply w-4 h-4 fill-current;
 }
