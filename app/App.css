@@ -101,7 +101,3 @@ body {
   width: 1.5rem;
   text-align: left;
 }
-
-.icon {
-  @apply w-4 h-4 fill-current;
-}

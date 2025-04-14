@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { TideForecastResult, TideExtreme } from "../../src/types";
 
 const { VITE_SIGNALK_URL = window.location.toString() } = import.meta.env;
-const TIDES_URL = new URL("/signalk/v2/api/resources/tides", VITE_SIGNALK_URL)
+export const API_URL = new URL("/signalk/v2/api/resources/tides", VITE_SIGNALK_URL).toString();
+export const SETTINGS_URL = new URL("/#/serverConfiguration/plugins/tides", VITE_SIGNALK_URL).toString();
 
 export type { TideForecastResult, TideExtreme }
 
@@ -11,7 +12,7 @@ export function useTideData() {
 
   useEffect(() => {
     (async () => {
-      const res = await fetch(TIDES_URL)
+      const res = await fetch(API_URL)
       setData(await res.json())
     })()
   }, []);
