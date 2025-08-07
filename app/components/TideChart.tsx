@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { TideExtreme } from "../hooks/useTideData";
-import moment from "moment";
 import { useContainerDimensions } from "../hooks/useContainerDimensions";
 
 type TideChartProps = {
@@ -12,7 +11,6 @@ type TideChartProps = {
   marginBottom?: number;
   marginLeft?: number;
   units?: "m" | "ft";
-  timeFormat?: string;
   data: TideExtreme[];
 };
 
@@ -23,7 +21,6 @@ export function TideChart({
   marginBottom = 30,
   marginLeft = 6,
   units = "m",
-  timeFormat = "HH:mm",
 }: TideChartProps) {
   const container = useRef<HTMLDivElement>(null);
   const now = useRef<SVGLineElement>(null);
@@ -47,7 +44,9 @@ export function TideChart({
   }
 
   function displayTime(value: string) {
-    return moment(value).format(timeFormat);
+    return new Intl.DateTimeFormat(navigator.language, {
+      timeStyle: "short",
+    }).format(new Date(value));
   }
 
   useEffect(() => {

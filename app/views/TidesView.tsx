@@ -23,8 +23,7 @@ export function TidesView() {
       </header >
       {
         data?.extremes ?
-          <TideChart data={data?.extremes ?? []
-          } units="ft" timeFormat="h:mm a" /> :
+          <TideChart data={data.extremes} units="ft" /> :
           <LoadingTidesView />
       }
     </>
