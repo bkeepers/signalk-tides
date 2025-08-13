@@ -4,6 +4,7 @@ import { TideChart } from '../components/TideChart'
 
 export function TidesView() {
   const data = useTideData();
+  const units = navigator.language === 'en-US' ? 'ft' : 'm';
 
   return (
     <>
@@ -23,8 +24,7 @@ export function TidesView() {
       </header >
       {
         data?.extremes ?
-          <TideChart data={data?.extremes ?? []
-          } units="ft" timeFormat="h:mm a" /> :
+          <TideChart data={data.extremes} units={units} /> :
           <LoadingTidesView />
       }
     </>
