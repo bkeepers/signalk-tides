@@ -166,8 +166,11 @@ export = function (app: SignalKApp): Plugin {
       }
     }
 
-    // Perform initial update on startup
-    performUpdate();
+    // Perform initial update on startup after short delay to allow gnss position to be populated
+    delay(4000).then(() => { performUpdate() });
+  }
+  function delay(time) {
+    return new Promise((resolve) => setTimeout(resolve, time));
   }
 
   return plugin;
