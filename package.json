@@ -1,6 +1,6 @@
 {
   "name": "signalk-tides",
-  "version": "1.2.3",
+  "version": "1.3.0",
   "description": "Tidal predictions for the vessel's position from various online sources.",
   "main": "./dist/index.js",
   "scripts": {
