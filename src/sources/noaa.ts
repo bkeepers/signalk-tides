@@ -17,10 +17,8 @@ export default function (app: SignalKApp): TideSource {
     async start() {
       const stations = await StationList.load(app);
 
-      return async ({ date }: TideForecastParams = {}): Promise<TideForecastResult> => {
-        const position = app.getSelfPath("navigation.position.value");
-        if (!position) throw new Error("no position");
-
+      return async (params: TideForecastParams): Promise<TideForecastResult> => {
+        const { position, date = moment().subtract(1, "days") } = params;
         const station = stations.closestTo(position);
 
         const endpoint = new URL(dataGetterUrl);

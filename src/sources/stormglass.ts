@@ -16,19 +16,15 @@ export default function (app: SignalKApp): TideSource {
     start({ stormglassApiKey } = {}) {
       app.debug("Using StormGlass.io API");
 
-      return async (params: TideForecastParams = {}): Promise<TideForecastResult> => {
-        const { date = moment().subtract(1, "days").toISOString() } = params;
+      return async ({ position, date = moment().subtract(1, "days").toISOString() }: TideForecastParams): Promise<TideForecastResult> => {
         const endPoint = new URL("https://api.stormglass.io/v2/tide/extremes/point");
-
-        const position = app.getSelfPath("navigation.position.value");
-        if (!position) throw new Error("no position");
 
         endPoint.search = new URLSearchParams({
           start: moment(date).format("YYYY-MM-DD"),
           end: moment(date).add(7, "days").format("YYYY-MM-DD"),
           // datum: "CD",
-          lat: position.latitude,
-          lng: position.longitude,
+          lat: position.latitude.toString(),
+          lng: position.longitude.toString()
         }).toString();
 
         app.debug("Fetching StormGlass.io: " + endPoint.toString());
@@ -44,7 +40,7 @@ export default function (app: SignalKApp): TideSource {
 
         return {
           station: {
-            name: data.meta.station.name,
+            name: `${data.meta.station.name} (${data.meta.station.source})`,
             position: {
               latitude: data.meta.station.lat,
               longitude: data.meta.station.lng,
