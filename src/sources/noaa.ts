@@ -1,7 +1,8 @@
 import path from 'path';
-import fs from 'fs/promises';
+import { unlink } from 'fs/promises';
 import { getDistance } from 'geolib';
 import moment from 'moment';
+import FileCache from '../cache.js';
 import type { SignalKApp, TideForecastParams, TideForecastResult, TideSource } from '../types.js';
 import type { NoaaPredictionApiResponse, NoaaStation, NoaaStationsApiResponse, NoaaTidePrediction } from '../types/noaa.js';
 
@@ -15,7 +16,11 @@ export default function (app: SignalKApp): TideSource {
     id: 'noaa',
     title: 'NOAA (US only)',
     async start() {
-      const stations = await StationList.load(app);
+      const cache = new FileCache(path.join(app.getDataDirPath(), 'noaa'))
+      const stations = await StationList.load(cache, app);
+
+      // Remove old cache file
+      unlink(path.join(app.config.configPath, 'noaastations.json')).catch(() => { /* ignore */ });
 
       return async (params: TideForecastParams): Promise<TideForecastResult> => {
         const { position, date = moment().subtract(1, "days") } = params;
@@ -71,20 +76,17 @@ export default function (app: SignalKApp): TideSource {
 };
 
 class StationList extends Map<string, NoaaStation> {
-  static async load(app: SignalKApp): Promise<StationList> {
-    const filename = path.join(app.config.configPath, "noaastations.json");
-    let data: NoaaStationsApiResponse;
+  static async load(cache: FileCache, app: SignalKApp): Promise<StationList> {
+    let data: NoaaStationsApiResponse = await cache.get('stations');
 
-    try {
-      data = JSON.parse(await fs.readFile(filename, 'utf-8'));
-      app.debug("NOAA: Loaded cached tide stations from " + filename);
-    } catch (e) {
-      app.debug(`NOAA: failed to load cached tide stations: ${e}`)
+    if (data) {
+      app.debug("NOAA: Loaded cached tide stations");
+    } else {
       app.debug('NOAA: Downloading tide stations');
       const res = await fetch(stationsUrl);
       if (!res.ok) throw new Error(`Failed to download stations: ${res.statusText}`);
       data = await res.json() as NoaaStationsApiResponse;
-      await fs.writeFile(filename, JSON.stringify(data));
+      await cache.set('stations', data);
     }
 
     return new this(data.stations);
