@@ -18,6 +18,8 @@ It publishes the following [tide data](https://signalk.org/specification/1.7.0/d
 * `environment.tide.timeHigh`
 * `environment.tide.heightLow`
 * `environment.tide.timeLow`
+* `environment.tide.heightNow`
+* `environment.tide.stationName`
 
 ### Tides resource
 
