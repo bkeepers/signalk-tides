@@ -1,4 +1,4 @@
-import { ServerAPI } from '@signalk/server-api';
+import { Position, ServerAPI } from '@signalk/server-api';
 // TODO[TS]: remove these once @signalk/server-api has all the types needed.
 import { WithConfig } from 'signalk-server/lib/app.js';
 import { SignalKServer } from 'signalk-server/lib/types.js';
@@ -11,6 +11,7 @@ export type OptionalPromise<T> = T | Promise<T>;
 export type TideExtremeType = "High" | "Low";
 
 export interface TideForecastParams {
+  position: Omit<Position, "altitude">;
   date?: string;
 }
 
@@ -31,7 +32,7 @@ export interface TideForecastResult {
   extremes: TideExtreme[];
 }
 
-export type TideForecastFunction = (params?: TideForecastParams) => OptionalPromise<TideForecastResult>;
+export type TideForecastFunction = (params: TideForecastParams) => OptionalPromise<TideForecastResult>;
 
 export interface TideSource {
   id: string;

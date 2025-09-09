@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-import { Plugin } from '@signalk/server-api';
+import { Plugin, Position } from '@signalk/server-api';
 import noaa from './sources/noaa.js';
 import stormglass from './sources/stormglass.js';
 import worldtides from './sources/worldtides.js';
-import type { SignalKApp, TideSource, Config, TideExtremeType, TideForecastResult } from './types.js';
+import type { SignalKApp, TideSource, Config, TideForecastResult } from './types.js';
 import { approximateTideHeightAt } from './calculations.js';
+import FileCache from './cache.js';
 
 export = function (app: SignalKApp): Plugin {
   // Interval to update tide data
   const defaultPeriod = 60; // 1 hour
   let unsubscribes: (() => void)[] = [];
-  let lastForecast: TideForecastResult | null = null;
 
   const sources: TideSource[] = [
     noaa(app),
@@ -71,6 +71,10 @@ export = function (app: SignalKApp): Plugin {
   plugin.start = async function (props: Config) {
     app.debug("Starting tides-api: " + JSON.stringify(props));
 
+    let lastForecast: TideForecastResult | null = null;
+    let lastPosition: Position | null = null;
+    const cache = new FileCache(app.getDataDirPath());
+
     // Use the selected source, or the first one if not specified
     const source = sources.find(source => source.id === props.source) || sources[0];
 
@@ -82,7 +86,8 @@ export = function (app: SignalKApp): Plugin {
       type: "tides",
       methods: {
         async listResources(query) {
-          return provider(query)
+          if (!lastPosition) throw new Error("No position available");
+          return provider({ position: lastPosition, ...query })
         },
         getResource(): never {
           throw new Error("Not implemented");
@@ -111,53 +116,28 @@ export = function (app: SignalKApp): Plugin {
       (subscriptionError) => {
         app.error("Error:" + subscriptionError);
       },
-      (delta) => {
-        // @ts-expect-error: TODO[TS]: fix Delta type upstream
-        delta.updates.forEach(({ values }) => {
-          // @ts-expect-error: TODO[TS]: fix Delta type upstream
-          values.forEach(({ path }) => {
-            if (path === "navigation.position") {
-              updateForecast();
-            }
-          });
-        });
-      }
+      updatePosition,
     );
 
-    async function updateForecast(now = new Date()) {
+    async function updatePosition() {
+      lastPosition = app.getSelfPath('navigation.position.value') || await cache.get('position') || null;
+
+      if (lastPosition) {
+        await cache.set('position', lastPosition);
+        await updateForecast();
+      }
+    }
+
+    async function updateForecast() {
+      if (!lastPosition) {
+        app.debug("No position available, cannot fetch tide data");
+        return
+      }
+
       try {
-        lastForecast = await provider();
-
-        const nextTide: Partial<Record<TideExtremeType, { time: string, value: number }>> = {};
-
-        lastForecast.extremes.forEach(({ type, value, time }) => {
-          // Get the first tide of this type after now
-          if (!nextTide[type] && new Date(time) > now) {
-            nextTide[type] = { time, value };
-          }
-        });
-
-        const delta = {
-          context: "vessels." + app.selfId,
-          updates: [
-            {
-              timestamp: now.toISOString(),
-              values: Object.entries(nextTide).flatMap(
-                ([type, { time, value }]) => {
-                  return [
-                    { path: `environment.tide.height${type}`, value: value },
-                    { path: `environment.tide.time${type}`, value: time },
-                  ];
-                }
-              ),
-            },
-          ],
-        };
-
-        app.debug("Sending delta: " + JSON.stringify(delta));
-        app.handleMessage(plugin.id, delta);
-        updateHeightNow();
-        app.setPluginStatus("Updated tide data");
+        lastForecast = await provider({ position: lastPosition });
+        app.setPluginStatus("Updated tide forecast from " + source.title);
+        updateTides()
       } catch (e: unknown) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         app.setPluginError((e as any).message);
@@ -166,26 +146,46 @@ export = function (app: SignalKApp): Plugin {
       }
     }
 
-    async function updateHeightNow(now = new Date()) {
+    async function updateTides(now = new Date()) {
       if (!lastForecast) return;
+      // Get the next two upcoming extremes
+      const nextTides = lastForecast.extremes.filter(({ time }) => new Date(time) >= now).slice(0, 2)
 
-      // Combine heights and extremes to account for min/max being between height samples
-      const height = approximateTideHeightAt(lastForecast.extremes, now);
-      app.handleMessage(plugin.id, {
+      const delta = {
         context: "vessels." + app.selfId,
         updates: [
           {
             timestamp: now.toISOString(),
-            values: [{ path: "environment.tide.heightNow", value: height }]
-          }
-        ]
-      });
+            values: [
+              {
+                path: "environment.tide.stationName",
+                value: lastForecast.station.name
+              },
+              {
+                path: "environment.tide.heightNow",
+                value: approximateTideHeightAt(lastForecast.extremes, now)
+              },
+              ...nextTides.flatMap(
+                ({ type, time, value }) => {
+                  return [
+                    { path: `environment.tide.height${type}`, value },
+                    { path: `environment.tide.time${type}`, value: time },
+                  ];
+                }
+              )
+            ]
+          },
+        ],
+      };
+
+      app.debug("Sending delta: " + JSON.stringify(delta));
+      app.handleMessage(plugin.id, delta);
     }
 
     // Perform initial update on startup after short delay to allow gnss position to be populated
-    delay(4000).then(() => { updateForecast() });
-    // Update heightNow every minute
-    setInterval(updateHeightNow, 60 * 1000);
+    delay(4000).then(updatePosition);
+    // Update every minute
+    setInterval(updateTides, 60 * 1000);
   }
   function delay(time: number) {
     return new Promise((resolve) => setTimeout(resolve, time));

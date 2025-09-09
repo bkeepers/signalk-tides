@@ -16,12 +16,9 @@ export default function (app: SignalKApp): TideSource {
     start({ worldtidesApiKey = '' } = {}) {
       app.debug("Using WorldTides API");
 
-      return async (params: TideForecastParams = {}): Promise<TideForecastResult> => {
-        const { date = moment().subtract(1, "days") } = params;
+      return async (params: TideForecastParams): Promise<TideForecastResult> => {
+        const { position, date = moment().subtract(1, "days") } = params;
         const endPoint = new URL("https://www.worldtides.info/api/v3");
-
-        const position = app.getSelfPath("navigation.position.value");
-        if (!position) throw new Error("no position");
 
         endPoint.search = new URLSearchParams({
           date: moment(date).format("YYYY-MM-DD"),
@@ -29,8 +26,8 @@ export default function (app: SignalKApp): TideSource {
           days: "7",
           extremes: "true",
           key: worldtidesApiKey,
-          lat: position.latitude,
-          lon: position.longitude,
+          lat: position.latitude.toString(),
+          lon: position.longitude.toString(),
         }).toString();
 
         app.debug("Fetching worldtides: " + endPoint.toString());
@@ -45,7 +42,7 @@ export default function (app: SignalKApp): TideSource {
 
         return {
           station: {
-            name: "WorldTides",
+            name: `${data.station} (${data.atlas})`,
             position: {
               latitude: data.responseLat,
               longitude: data.responseLon,

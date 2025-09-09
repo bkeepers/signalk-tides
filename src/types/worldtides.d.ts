@@ -7,6 +7,7 @@ export interface WorldTidesPredictionApiResponse {
   requestLon: number;
   responseLat: number;
   responseLon: number;
+  station: string;
   atlas: string;
   extremes: Extreme[];
 }
