@@ -1,6 +1,8 @@
 import { Position, ServerAPI } from '@signalk/server-api';
 // TODO[TS]: remove these once @signalk/server-api has all the types needed.
+// @ts-expect-error - signalk-server internal types not properly exported
 import { WithConfig } from 'signalk-server/lib/app.js';
+// @ts-expect-error - signalk-server internal types not properly exported
 import { SignalKServer } from 'signalk-server/lib/types.js';
 
 // TODO[TS]: Fix this in the upstream types
@@ -46,4 +48,5 @@ export type Config = {
   period?: number;
   worldtidesApiKey?: string;
   stormglassApiKey?: string;
+  stationSwitchThreshold?: number;
 };

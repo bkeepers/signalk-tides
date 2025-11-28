@@ -21,6 +21,7 @@ import worldtides from './sources/worldtides.js';
 import type { SignalKApp, TideSource, Config, TideForecastResult } from './types.js';
 import { approximateTideHeightAt } from './calculations.js';
 import FileCache from './cache.js';
+import { getDistance } from 'geolib';
 
 export = function (app: SignalKApp): Plugin {
   // Interval to update tide data
@@ -36,7 +37,6 @@ export = function (app: SignalKApp): Plugin {
   const plugin: Plugin = {
     id: "tides",
     name: "Tides",
-    // @ts-expect-error: TODO[TS]: fix Plugin type upstream
     description: "Tidal predictions for the vessel's position from various online sources.",
     schema: () => ({
       title: "Tides API",
@@ -60,19 +60,25 @@ export = function (app: SignalKApp): Plugin {
           default: 60,
           minimum: 1,
         },
+        stationSwitchThreshold: {
+          title: "Station switch threshold",
+          type: "number",
+          description: "Minimum distance difference (in km) required to switch to a different tide station. Prevents frequent switching between nearby stations. Set to 0 to disable.",
+          default: 10,
+          minimum: 0,
+        },
       }
     }),
     stop() {
       unsubscribes.forEach((f) => f());
       unsubscribes = [];
-    }
-  };
-
-  plugin.start = async function (props: Config) {
+    },
+    start: async function (props: Config) {
     app.debug("Starting tides-api: " + JSON.stringify(props));
 
     let lastForecast: TideForecastResult | null = null;
     let lastPosition: Position | null = null;
+    let preferredStation: { name: string; position: { latitude: number; longitude: number } } | null = null;
     const cache = new FileCache(app.getDataDirPath());
 
     // Use the selected source, or the first one if not specified
@@ -85,9 +91,14 @@ export = function (app: SignalKApp): Plugin {
     app.registerResourceProvider({
       type: "tides",
       methods: {
-        async listResources(query) {
-          if (!lastPosition) throw new Error("No position available");
-          return provider({ position: lastPosition, ...query })
+        async listResources(query: Record<string, unknown>) {
+          if (!lastForecast) {
+            // No cached forecast available, fetch new one
+            if (!lastPosition) throw new Error("No position available");
+            return provider({ position: lastPosition, ...query })
+          }
+          // Return cached forecast to avoid excessive API calls
+          return lastForecast;
         },
         getResource(): never {
           throw new Error("Not implemented");
@@ -113,7 +124,7 @@ export = function (app: SignalKApp): Plugin {
         ],
       },
       unsubscribes,
-      (subscriptionError) => {
+      (subscriptionError: unknown) => {
         app.error("Error:" + subscriptionError);
       },
       updatePosition,
@@ -135,13 +146,43 @@ export = function (app: SignalKApp): Plugin {
       }
 
       try {
-        lastForecast = await provider({ position: lastPosition });
+        const newForecast = await provider({ position: lastPosition });
+
+        // Check if we should switch to this new station
+        const threshold = (props.stationSwitchThreshold ?? 10) * 1000; // Convert km to meters
+
+        if (preferredStation && threshold > 0) {
+          // Calculate distances from current position to both stations
+          const distanceToPreferred = getDistance(
+            lastPosition,
+            preferredStation.position
+          );
+          const distanceToNew = getDistance(
+            lastPosition,
+            newForecast.station.position
+          );
+
+          // Only switch if the new station is significantly closer
+          if (distanceToNew < distanceToPreferred - threshold) {
+            app.debug(`Switching from ${preferredStation.name} (${(distanceToPreferred / 1000).toFixed(1)}km) to ${newForecast.station.name} (${(distanceToNew / 1000).toFixed(1)}km)`);
+            preferredStation = newForecast.station;
+            lastForecast = newForecast;
+          } else {
+            app.debug(`Keeping ${preferredStation.name} (${(distanceToPreferred / 1000).toFixed(1)}km) instead of ${newForecast.station.name} (${(distanceToNew / 1000).toFixed(1)}km)`);
+            // Keep using the existing lastForecast data for the preferred station
+            // The newForecast from a different station is discarded
+          }
+        } else {
+          // First time or threshold is 0 (disabled), use the new forecast
+          preferredStation = newForecast.station;
+          lastForecast = newForecast;
+        }
+
         app.setPluginStatus("Updated tide forecast from " + source.title);
         updateTides()
       } catch (e: unknown) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        app.setPluginError((e as any).message);
-        // @ts-expect-error: TODO[TS] this accepts more than just a string: https://github.com/bkeepers/signalk-server/blob/d6845ee1f915e6b729d66d2b08b15dc2e0da8e51/src/interfaces/plugins.ts#L517-L519
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        app.setPluginError(errorMessage);
         app.error(e);
       }
     }
@@ -182,11 +223,13 @@ export = function (app: SignalKApp): Plugin {
       app.handleMessage(plugin.id, delta);
     }
 
-    // Perform initial update on startup after short delay to allow gnss position to be populated
-    delay(4000).then(updatePosition);
-    // Update every minute
-    setInterval(updateTides, 60 * 1000);
-  }
+      // Perform initial update on startup after short delay to allow gnss position to be populated
+      delay(4000).then(updatePosition);
+      // Update every minute
+      setInterval(updateTides, 60 * 1000);
+    }
+  };
+
   function delay(time: number) {
     return new Promise((resolve) => setTimeout(resolve, time));
   }
