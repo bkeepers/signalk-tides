@@ -55,6 +55,10 @@ export default function (app: SignalKApp): TideSource {
               time: new Date(dt * 1000).toISOString(),
             };
           }),
+          datum: {
+            source: 'MLLW',  // WorldTides uses Chart Datum (CD) which is similar to MLLW
+            // WorldTides doesn't provide MSL offset, will be estimated if needed
+          }
         };
       };
 

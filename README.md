@@ -1,6 +1,6 @@
 # signalk-tides
 
-A SignalK plugin that provides tidal predictions for the vessel's position from various online sources.
+A SignalK plugin that provides tidal predictions for the vessel's position from various online sources and offline harmonic prediction.
 
 ## Installation
 
@@ -206,9 +206,33 @@ $ curl http://localhost:3000/signalk/v2/api/resources/tides
 
 ## Sources
 
-- [NOAA](https://tidesandcurrents.noaa.gov/web_services_info.html) (US only)
-- [WorldTides API](https://www.worldtides.info/) (requires an API key)
-- [StormGlass.io](https://stormglass.io/) (requires an API key)
+- **[NOAA](https://tidesandcurrents.noaa.gov/web_services_info.html)** - US waters only, uses MLLW datum, highly accurate
+- **[WorldTides API](https://www.worldtides.info/)** - Global coverage (requires API key), uses Chart Datum (CD/LAT), recommended for international waters
+- **[StormGlass.io](https://stormglass.io/)** - Global coverage (requires API key), supports MSL and MLLW datums
+  - ⚠️ **Note:** Data quality may vary by region, particularly for UHSLC stations in the Pacific. Consider using WorldTides or Offline mode for critical navigation.
+- **Offline** - Harmonic prediction using NOAA harmonic constituents (no internet required), uses MSL datum with automatic MLLW conversion
+
+## Features
+
+### Offline Mode
+- Uses real NOAA harmonic constituents for accurate offline predictions
+- Automatic harmonics cache download (500nm radius, quarterly updates)
+- Fallback to offline when online providers fail
+- Bundled harmonics for Fiji region (can be customized with extraction tool)
+
+### Tidal Datums
+All sources provide tide heights referenced to **MLLW** (Mean Lower Low Water) or equivalent Chart Datum (CD/LAT):
+- **NOAA**: Native MLLW datum (US standard)
+- **WorldTides**: Chart Datum (CD), equivalent to LAT (Lowest Astronomical Tide)
+- **StormGlass**: Requests MLLW datum from API
+- **Offline**: MSL with automatic conversion to MLLW using NOAA datum offsets
+
+This ensures all tide heights are positive values suitable for marine navigation.
+
+### Smart Station Selection
+- Prevents frequent switching between nearby tide stations
+- Configurable distance threshold (default: 10km)
+- Maintains consistent predictions during vessel movement
 
 ## License
 

@@ -32,6 +32,10 @@ export interface TideForecastResult {
     };
   }
   extremes: TideExtreme[];
+  datum?: {
+    source: 'MSL' | 'MLLW';  // What datum the source data is in
+    mllwToMslOffset?: number;  // Offset in meters (MLLW + offset = MSL)
+  };
 }
 
 export type TideForecastFunction = (params: TideForecastParams) => OptionalPromise<TideForecastResult>;
@@ -52,5 +56,4 @@ export type Config = {
   enableOfflineFallback?: boolean;
   offlineMode?: 'auto' | 'always';
   showOfflineWarning?: boolean;
-  // TODO: Add harmonics cache auto-download config types (see .claude/future_harmonics_autodownload.md)
 };

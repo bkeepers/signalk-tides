@@ -63,6 +63,11 @@ export default function (app: SignalKApp): TideSource {
               value: Number(v),
               time: new Date(`${t}Z`).toISOString(),
             })),
+            datum: {
+              source: 'MLLW',
+              // NOAA doesn't provide MSL offset in API, would need separate datum query
+              // For now, this will be estimated if user selects MSL
+            }
           };
         } catch (err: unknown) {
           const errorMessage = err instanceof Error ? err.message : String(err);
