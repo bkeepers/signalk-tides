@@ -1,28 +1,46 @@
-import path from 'path';
-import { unlink } from 'fs/promises';
-import { getDistance } from 'geolib';
-import moment from 'moment';
-import FileCache from '../cache.js';
-import type { SignalKApp, TideForecastParams, TideForecastResult, TideSource } from '../types.js';
-import type { NoaaPredictionApiResponse, NoaaStation, NoaaStationsApiResponse, NoaaTidePrediction } from '../types/noaa.js';
+import path from "path";
+import { unlink } from "fs/promises";
+import { getDistance } from "geolib";
+import moment from "moment";
+import FileCache from "../cache.js";
+import type {
+  SignalKApp,
+  TideForecastParams,
+  TideForecastResult,
+  TideSource,
+} from "../types.js";
+import type {
+  NoaaPredictionApiResponse,
+  NoaaStation,
+  NoaaStationsApiResponse,
+  NoaaTidePrediction,
+} from "../types/noaa.js";
 
 const stationsUrl = `https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=tidepredictions`;
-const dataGetterUrl = 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter';
+const dataGetterUrl =
+  "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter";
 
-const datum = 'MLLW';
+const datum = "MLLW";
 
 export default function (app: SignalKApp): TideSource {
   return {
-    id: 'noaa',
-    title: 'NOAA (US only)',
+    id: "noaa",
+    title: "NOAA (US only)",
     async start() {
-      const cache = new FileCache(path.join(app.getDataDirPath(), 'noaa'))
+      const cache = new FileCache(path.join(app.getDataDirPath(), "noaa"));
       const stations = await StationList.load(cache, app);
 
       // Remove old cache file
-      unlink(path.join(app.config.configPath, 'noaastations.json')).catch(() => { /* ignore */ });
+      // @ts-expect-error: configPath exists, just not part of the types
+      unlink(path.join(app.config.configPath, "noaastations.json")).catch(
+        () => {
+          /* ignore */
+        }
+      );
 
-      return async (params: TideForecastParams): Promise<TideForecastResult> => {
+      return async (
+        params: TideForecastParams
+      ): Promise<TideForecastResult> => {
         const { position, date = moment().subtract(1, "days") } = params;
         const station = stations.closestTo(position);
 
@@ -44,8 +62,9 @@ export default function (app: SignalKApp): TideSource {
 
         try {
           const res = await fetch(endpoint.toString());
-          if (!res.ok) throw new Error("Failed to fetch NOAA tides: " + res.statusText);
-          const body = await res.json() as NoaaPredictionApiResponse;
+          if (!res.ok)
+            throw new Error("Failed to fetch NOAA tides: " + res.statusText);
+          const body = (await res.json()) as NoaaPredictionApiResponse;
           app.debug("NOAA response: \n" + JSON.stringify(body, null, 2));
 
           if (body.error) throw new Error(body.error.message);
@@ -58,16 +77,18 @@ export default function (app: SignalKApp): TideSource {
                 longitude: station.lng,
               },
             },
-            extremes: body.predictions.map(({ t, v, type }: NoaaTidePrediction) => ({
-              type: type === "H" ? "High" : "Low",
-              value: Number(v),
-              time: new Date(`${t}Z`).toISOString(),
-            })),
+            extremes: body.predictions.map(
+              ({ t, v, type }: NoaaTidePrediction) => ({
+                type: type === "H" ? "High" : "Low",
+                value: Number(v),
+                time: new Date(`${t}Z`).toISOString(),
+              })
+            ),
             datum: {
-              source: 'MLLW',
+              source: "MLLW",
               // NOAA doesn't provide MSL offset in API, would need separate datum query
               // For now, this will be estimated if user selects MSL
-            }
+            },
           };
         } catch (err: unknown) {
           const errorMessage = err instanceof Error ? err.message : String(err);
@@ -75,23 +96,26 @@ export default function (app: SignalKApp): TideSource {
           app.error(err);
           throw err;
         }
-      }
-    }
+      };
+    },
   };
-};
+}
 
 class StationList extends Map<string, NoaaStation> {
   static async load(cache: FileCache, app: SignalKApp): Promise<StationList> {
-    let data: NoaaStationsApiResponse = await cache.get('stations');
+    let data: NoaaStationsApiResponse = (await cache.get(
+      "stations"
+    )) as NoaaStationsApiResponse;
 
     if (data) {
       app.debug("NOAA: Loaded cached tide stations");
     } else {
-      app.debug('NOAA: Downloading tide stations');
+      app.debug("NOAA: Downloading tide stations");
       const res = await fetch(stationsUrl);
-      if (!res.ok) throw new Error(`Failed to download stations: ${res.statusText}`);
-      data = await res.json() as NoaaStationsApiResponse;
-      await cache.set('stations', data);
+      if (!res.ok)
+        throw new Error(`Failed to download stations: ${res.statusText}`);
+      data = (await res.json()) as NoaaStationsApiResponse;
+      await cache.set("stations", data);
     }
 
     return new this(data.stations);
@@ -105,12 +129,20 @@ class StationList extends Map<string, NoaaStation> {
     return this.near(position, 1)[0];
   }
 
-  near(position: { latitude: number; longitude: number }, limit = 10): NoaaStation[] {
+  near(
+    position: { latitude: number; longitude: number },
+    limit = 10
+  ): NoaaStation[] {
     const stationsWithDistances = Array.from(this.values()).map((station) => ({
       ...station,
-      distance: getDistance(position, { latitude: station.lat, longitude: station.lng })
+      distance: getDistance(position, {
+        latitude: station.lat,
+        longitude: station.lng,
+      }),
     }));
 
-    return stationsWithDistances.sort((a, b) => a.distance - b.distance).slice(0, limit);
+    return stationsWithDistances
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, limit);
   }
 }

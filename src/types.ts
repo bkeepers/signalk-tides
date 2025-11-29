@@ -1,12 +1,7 @@
-import { Position, ServerAPI } from '@signalk/server-api';
-// TODO[TS]: remove these once @signalk/server-api has all the types needed.
-// @ts-expect-error - signalk-server internal types not properly exported
-import { WithConfig } from 'signalk-server/lib/app.js';
-// @ts-expect-error - signalk-server internal types not properly exported
-import { SignalKServer } from 'signalk-server/lib/types.js';
+import { Position, ServerAPI } from "@signalk/server-api";
 
 // TODO[TS]: Fix this in the upstream types
-export type SignalKApp = ServerAPI & SignalKServer & WithConfig;
+export type SignalKApp = ServerAPI;
 
 export type OptionalPromise<T> = T | Promise<T>;
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Plugin, Position } from '@signalk/server-api';
+import { Context, Delta, Path, Plugin, Position, Timestamp } from '@signalk/server-api';
 import noaa from './sources/noaa.js';
 import stormglass from './sources/stormglass.js';
 import worldtides from './sources/worldtides.js';
@@ -159,10 +159,10 @@ export = function (app: SignalKApp): Plugin {
 
     app.subscriptionmanager.subscribe(
       {
-        context: "vessels." + app.selfId,
+        context: ("vessels." + app.selfId) as Context,
         subscribe: [
           {
-            path: "navigation.position",
+            path: "navigation.position" as Path,
             period: (props.period ?? defaultPeriod) * 60 * 1000,
             policy: "fixed",
           },
@@ -330,29 +330,27 @@ export = function (app: SignalKApp): Plugin {
         return; // Silently skip - no need to log
       }
 
-      const delta = {
-        context: "vessels." + app.selfId,
+      const delta: Delta = {
+        context: "vessels." + app.selfId as Context,
         updates: [
           {
-            timestamp: now.toISOString(),
+            timestamp: now.toISOString() as Timestamp,
             values: [
               {
-                path: "environment.tide.stationName",
-                value: lastForecast.station.name
+                path: "environment.tide.stationName" as Path,
+                value: lastForecast.station.name,
               },
               {
-                path: "environment.tide.heightNow",
-                value: approximateTideHeightAt(lastForecast.extremes, now)
+                path: "environment.tide.heightNow" as Path,
+                value: approximateTideHeightAt(lastForecast.extremes, now),
               },
-              ...nextTides.flatMap(
-                ({ type, time, value }) => {
-                  return [
-                    { path: `environment.tide.height${type}`, value },
-                    { path: `environment.tide.time${type}`, value: time },
-                  ];
-                }
-              )
-            ]
+              ...nextTides.flatMap(({ type, time, value }) => {
+                return [
+                  { path: `environment.tide.height${type}` as Path, value },
+                  { path: `environment.tide.time${type}` as Path, value: time },
+                ];
+              }),
+            ],
           },
         ],
       };
