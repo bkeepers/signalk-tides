@@ -29,6 +29,7 @@ export = function (app: SignalKApp): Plugin {
   // Interval to update tide data
   const defaultPeriod = 60; // 1 hour
   let unsubscribes: (() => void)[] = [];
+  let nextTideTimer: NodeJS.Timeout | null = null;
 
   const sources: TideSource[] = [
     noaa(app),
@@ -95,6 +96,10 @@ export = function (app: SignalKApp): Plugin {
     stop() {
       unsubscribes.forEach((f) => f());
       unsubscribes = [];
+      if (nextTideTimer) {
+        clearTimeout(nextTideTimer);
+        nextTideTimer = null;
+      }
     },
     start: async function (props: Config) {
     app.debug("Starting tides-api: " + JSON.stringify(props));
@@ -322,8 +327,7 @@ export = function (app: SignalKApp): Plugin {
         lastSentTideState.highTime !== currentState.highTime;
 
       if (!shouldUpdate) {
-        app.debug("Tide state unchanged, skipping delta");
-        return;
+        return; // Silently skip - no need to log
       }
 
       const delta = {
@@ -356,12 +360,46 @@ export = function (app: SignalKApp): Plugin {
       app.debug("Sending delta: " + JSON.stringify(delta));
       app.handleMessage(plugin.id, delta);
       lastSentTideState = currentState;
+
+      // Schedule next update when the first upcoming tide extreme occurs
+      scheduleNextTideUpdate();
+    }
+
+    function scheduleNextTideUpdate() {
+      // Clear existing timer
+      if (nextTideTimer) {
+        clearTimeout(nextTideTimer);
+        nextTideTimer = null;
+      }
+
+      if (!lastForecast) return;
+
+      const now = new Date();
+      const nextTides = lastForecast.extremes.filter(({ time }) => new Date(time) > now);
+
+      if (nextTides.length === 0) {
+        app.debug("No upcoming tides, skipping timer schedule");
+        return;
+      }
+
+      // Schedule update 1 minute after the next tide extreme occurs
+      const nextTideTime = new Date(nextTides[0].time);
+      const timeUntilNextTide = nextTideTime.getTime() - now.getTime() + 60000; // +1 minute buffer
+
+      // Ensure we don't schedule too far in the future (max 24 hours)
+      const scheduleDelay = Math.min(timeUntilNextTide, 24 * 60 * 60 * 1000);
+
+      if (scheduleDelay > 0) {
+        const nextTideDate = new Date(now.getTime() + scheduleDelay);
+        app.debug(`Next tide update scheduled for ${nextTideDate.toISOString()} (in ${Math.round(scheduleDelay / 60000)} minutes)`);
+        nextTideTimer = setTimeout(() => {
+          updateTides();
+        }, scheduleDelay);
+      }
     }
 
       // Perform initial update on startup after short delay to allow gnss position to be populated
       delay(4000).then(updatePosition);
-      // Update every minute
-      setInterval(updateTides, 60 * 1000);
     }
   };
 
