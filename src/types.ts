@@ -27,6 +27,10 @@ export interface TideForecastResult {
     };
   }
   extremes: TideExtreme[];
+  datum?: {
+    source: 'MSL' | 'MLLW';  // What datum the source data is in
+    mllwToMslOffset?: number;  // Offset in meters (MLLW + offset = MSL)
+  };
 }
 
 export type TideForecastFunction = (params: TideForecastParams) => OptionalPromise<TideForecastResult>;
@@ -43,4 +47,8 @@ export type Config = {
   period?: number;
   worldtidesApiKey?: string;
   stormglassApiKey?: string;
+  stationSwitchThreshold?: number;
+  enableOfflineFallback?: boolean;
+  offlineMode?: 'auto' | 'always';
+  showOfflineWarning?: boolean;
 };

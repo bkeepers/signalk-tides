@@ -22,7 +22,7 @@ export default function (app: SignalKApp): TideSource {
         endPoint.search = new URLSearchParams({
           start: moment(date).format("YYYY-MM-DD"),
           end: moment(date).add(7, "days").format("YYYY-MM-DD"),
-          // datum: "CD",
+          datum: "MLLW",  // Request MLLW datum (StormGlass only supports MSL and MLLW)
           lat: position.latitude.toString(),
           lng: position.longitude.toString()
         }).toString();
@@ -37,6 +37,11 @@ export default function (app: SignalKApp): TideSource {
 
         const data = await res.json() as StormGlassApiResponse;
         app.debug(JSON.stringify(data, null, 2));
+
+        // Log StormGlass's datum offset for debugging data quality issues
+        if (data.meta.offset !== undefined) {
+          app.debug(`StormGlass offset: ${data.meta.offset}m (station: ${data.meta.station.source})`);
+        }
 
         return {
           station: {
@@ -53,6 +58,10 @@ export default function (app: SignalKApp): TideSource {
               time: new Date(time).toISOString(),
             };
           }),
+          datum: {
+            source: 'MLLW',  // StormGlass returns MLLW data when datum=MLLW is requested
+            // StormGlass doesn't provide MSL offset, will be estimated if needed
+          }
         };
       };
     }
