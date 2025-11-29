@@ -237,6 +237,7 @@ export = function (app: SignalKApp): Plugin {
             app.debug(`Switching from ${preferredStation.name} (${(distanceToPreferred / 1000).toFixed(1)}km) to ${newForecast.station.name} (${(distanceToNew / 1000).toFixed(1)}km)`);
             preferredStation = newForecast.station;
             lastForecast = newForecast;
+            lastSentTideState = null; // Force delta update for new station
           } else {
             app.debug(`Keeping ${preferredStation.name} (${(distanceToPreferred / 1000).toFixed(1)}km) instead of ${newForecast.station.name} (${(distanceToNew / 1000).toFixed(1)}km)`);
             // Keep using the existing lastForecast data for the preferred station
@@ -246,6 +247,7 @@ export = function (app: SignalKApp): Plugin {
           // First time or threshold is 0 (disabled), use the new forecast
           preferredStation = newForecast.station;
           lastForecast = newForecast;
+          lastSentTideState = null; // Force delta update for new forecast
         }
 
         // Mark successful fetch
@@ -272,6 +274,7 @@ export = function (app: SignalKApp): Plugin {
               preferredStation = offlineForecast.station;
               lastForecast = offlineForecast;
               dataSource = 'offline';
+              lastSentTideState = null; // Force delta update for offline fallback
 
               const warning = props.showOfflineWarning !== false
                 ? " - NOT FOR NAVIGATION"
@@ -294,10 +297,34 @@ export = function (app: SignalKApp): Plugin {
       }
     }
 
+    let lastSentTideState: {
+      stationName: string;
+      lowTime: string;
+      highTime: string;
+    } | null = null;
+
     async function updateTides(now = new Date()) {
       if (!lastForecast) return;
       // Get the next two upcoming extremes
       const nextTides = lastForecast.extremes.filter(({ time }) => new Date(time) >= now).slice(0, 2)
+
+      // Check if we need to send an update
+      const currentState = {
+        stationName: lastForecast.station.name,
+        lowTime: nextTides.find(t => t.type === 'Low')?.time || '',
+        highTime: nextTides.find(t => t.type === 'High')?.time || '',
+      };
+
+      // Only send delta if something changed (station, or next tide times)
+      const shouldUpdate = !lastSentTideState ||
+        lastSentTideState.stationName !== currentState.stationName ||
+        lastSentTideState.lowTime !== currentState.lowTime ||
+        lastSentTideState.highTime !== currentState.highTime;
+
+      if (!shouldUpdate) {
+        app.debug("Tide state unchanged, skipping delta");
+        return;
+      }
 
       const delta = {
         context: "vessels." + app.selfId,
@@ -328,6 +355,7 @@ export = function (app: SignalKApp): Plugin {
 
       app.debug("Sending delta: " + JSON.stringify(delta));
       app.handleMessage(plugin.id, delta);
+      lastSentTideState = currentState;
     }
 
       // Perform initial update on startup after short delay to allow gnss position to be populated
