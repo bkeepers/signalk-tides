@@ -12,9 +12,11 @@ export interface StormGlassExtreme {
 export interface StormGlassMeta {
   cost: number;
   dailyQuota: number;
+  datum?: string;
   end: string;
   lat: number;
   lng: number;
+  offset?: number;
   requestCount: number;
   start: string;
   station: StormGlassStation;

@@ -90,7 +90,6 @@ export = function (app: SignalKApp): Plugin {
           description: "Display 'NOT FOR NAVIGATION' warning when using offline mode",
           default: true,
         },
-        // TODO: Add harmonics cache auto-download config (see .claude/future_harmonics_autodownload.md)
       }
     }),
     stop() {
@@ -217,7 +216,7 @@ export = function (app: SignalKApp): Plugin {
       }
 
       try {
-        const newForecast = await provider({ position: lastPosition });
+        let newForecast = await provider({ position: lastPosition });
 
         // Check if we should switch to this new station
         const threshold = (props.stationSwitchThreshold ?? 10) * 1000; // Convert km to meters
@@ -268,7 +267,7 @@ export = function (app: SignalKApp): Plugin {
             const offlineSource = sources.find(s => s.id === 'Offline');
             if (offlineSource) {
               const offlineProvider = await offlineSource.start(props);
-              const offlineForecast = await offlineProvider({ position: lastPosition });
+              let offlineForecast = await offlineProvider({ position: lastPosition });
 
               preferredStation = offlineForecast.station;
               lastForecast = offlineForecast;

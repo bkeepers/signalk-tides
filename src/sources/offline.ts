@@ -104,7 +104,11 @@ export default function (app: SignalKApp): TideSource {
             type: extreme.high ? 'High' : 'Low',
             time: extreme.time.toISOString(),
             value: extreme.level
-          }))
+          })),
+          datum: {
+            source: 'MSL',
+            mllwToMslOffset: offset
+          }
         };
       };
     }
