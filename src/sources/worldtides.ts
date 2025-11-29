@@ -42,7 +42,7 @@ export default function (app: SignalKApp): TideSource {
 
         return {
           station: {
-            name: `${data.station} (${data.atlas})`,
+            name: data.station ? `${data.station} (${data.atlas})` : data.atlas,
             position: {
               latitude: data.responseLat,
               longitude: data.responseLon,
