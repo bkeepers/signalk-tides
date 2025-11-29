@@ -31,6 +31,7 @@ export default function (app: SignalKApp): TideSource {
       const stations = await StationList.load(cache, app);
 
       // Remove old cache file
+      // @ts-expect-error: configPath exists, just not part of the types
       unlink(path.join(app.config.configPath, "noaastations.json")).catch(
         () => {
           /* ignore */
