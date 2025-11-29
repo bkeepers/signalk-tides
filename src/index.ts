@@ -18,9 +18,11 @@ import { Plugin, Position } from '@signalk/server-api';
 import noaa from './sources/noaa.js';
 import stormglass from './sources/stormglass.js';
 import worldtides from './sources/worldtides.js';
+import offline from './sources/offline.js';
 import type { SignalKApp, TideSource, Config, TideForecastResult } from './types.js';
 import { approximateTideHeightAt } from './calculations.js';
 import FileCache from './cache.js';
+import { HarmonicsCache } from './harmonics-cache.js';
 import { getDistance } from 'geolib';
 
 export = function (app: SignalKApp): Plugin {
@@ -32,6 +34,7 @@ export = function (app: SignalKApp): Plugin {
     noaa(app),
     stormglass(app),
     worldtides(app),
+    offline(app),
   ];
 
   const plugin: Plugin = {
@@ -67,6 +70,27 @@ export = function (app: SignalKApp): Plugin {
           default: 10,
           minimum: 0,
         },
+        enableOfflineFallback: {
+          title: "Enable offline fallback",
+          type: "boolean",
+          description: "Automatically use offline harmonic prediction when online providers fail",
+          default: true,
+        },
+        offlineMode: {
+          title: "Offline mode",
+          type: "string",
+          enum: ["auto", "always"],
+          enumNames: ["Auto (fallback)", "Always offline"],
+          description: "Auto: Use online first, fallback to offline. Always: Skip online providers entirely",
+          default: "auto",
+        },
+        showOfflineWarning: {
+          title: "Show offline warning",
+          type: "boolean",
+          description: "Display 'NOT FOR NAVIGATION' warning when using offline mode",
+          default: true,
+        },
+        // TODO: Add harmonics cache auto-download config (see .claude/future_harmonics_autodownload.md)
       }
     }),
     stop() {
@@ -79,7 +103,24 @@ export = function (app: SignalKApp): Plugin {
     let lastForecast: TideForecastResult | null = null;
     let lastPosition: Position | null = null;
     let preferredStation: { name: string; position: { latitude: number; longitude: number } } | null = null;
+    let lastSuccessfulFetch: Date | null = null;
+    let dataSource: 'online' | 'offline' | 'cached' = 'online';
     const cache = new FileCache(app.getDataDirPath());
+
+    // Harmonics cache for automatic background downloads (500nm radius, quarterly updates)
+    const harmonicsCache = new HarmonicsCache(
+      app,
+      app.getDataDirPath(),
+      {
+        autoDownloadRadius: 500,
+        updateFrequency: 'quarterly',
+        minStations: 2,
+        expandRadiusIfNeeded: true,
+        maxRadius: 1000,
+      }
+    );
+    let harmonicsUpdateInProgress = false;
+    let positionRetries = 0;
 
     // Use the selected source, or the first one if not specified
     const source = sources.find(source => source.id === props.source) || sources[0];
@@ -135,7 +176,37 @@ export = function (app: SignalKApp): Plugin {
 
       if (lastPosition) {
         await cache.set('position', lastPosition);
+
+        // Background harmonics cache update (non-blocking)
+        if (!harmonicsUpdateInProgress) {
+          tryUpdateHarmonics();
+        }
+
         await updateForecast();
+      } else if (positionRetries < 3) {
+        // Retry getting position for harmonics update
+        positionRetries++;
+        app.debug(`Position not available for harmonics update, will retry (${positionRetries}/3)`);
+        setTimeout(updatePosition, 5 * 60 * 1000); // Retry in 5 minutes
+      }
+    }
+
+    // Background task: Update harmonics cache if needed (non-blocking)
+    async function tryUpdateHarmonics() {
+      if (!lastPosition || harmonicsUpdateInProgress) return;
+
+      try {
+        harmonicsUpdateInProgress = true;
+        app.debug('Checking if harmonics cache needs update...');
+
+        // This runs in background and won't block tide updates
+        await harmonicsCache.updateIfNeeded(lastPosition);
+        positionRetries = 0; // Reset on success
+
+      } catch (error) {
+        app.debug(`Harmonics cache update failed: ${error}`);
+      } finally {
+        harmonicsUpdateInProgress = false;
       }
     }
 
@@ -178,10 +249,47 @@ export = function (app: SignalKApp): Plugin {
           lastForecast = newForecast;
         }
 
-        app.setPluginStatus("Updated tide forecast from " + source.title);
+        // Mark successful fetch
+        lastSuccessfulFetch = new Date();
+        dataSource = 'online';
+
+        const timestamp = lastSuccessfulFetch.toISOString();
+        app.setPluginStatus(`Updated from ${source.title} at ${timestamp}`);
+        app.debug(`Data source: ${dataSource}, Station: ${preferredStation?.name}`);
         updateTides()
       } catch (e: unknown) {
         const errorMessage = e instanceof Error ? e.message : String(e);
+        app.debug(`Online provider failed: ${errorMessage}`);
+
+        // Try offline fallback if enabled
+        if (props.enableOfflineFallback !== false && props.offlineMode !== 'always') {
+          try {
+            app.debug('Attempting offline fallback...');
+            const offlineSource = sources.find(s => s.id === 'Offline');
+            if (offlineSource) {
+              const offlineProvider = await offlineSource.start(props);
+              const offlineForecast = await offlineProvider({ position: lastPosition });
+
+              preferredStation = offlineForecast.station;
+              lastForecast = offlineForecast;
+              dataSource = 'offline';
+
+              const warning = props.showOfflineWarning !== false
+                ? " - NOT FOR NAVIGATION"
+                : "";
+              const timestamp = new Date().toISOString();
+              app.setPluginStatus(`Offline mode${warning} at ${timestamp}`);
+              app.debug('Offline fallback successful');
+              updateTides();
+              return;
+            }
+          } catch (offlineError: unknown) {
+            const offlineErrorMsg = offlineError instanceof Error ? offlineError.message : String(offlineError);
+            app.debug(`Offline fallback failed: ${offlineErrorMsg}`);
+          }
+        }
+
+        // Both online and offline failed, or offline disabled
         app.setPluginError(errorMessage);
         app.error(e);
       }

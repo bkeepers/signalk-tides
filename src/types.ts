@@ -49,4 +49,8 @@ export type Config = {
   worldtidesApiKey?: string;
   stormglassApiKey?: string;
   stationSwitchThreshold?: number;
+  enableOfflineFallback?: boolean;
+  offlineMode?: 'auto' | 'always';
+  showOfflineWarning?: boolean;
+  // TODO: Add harmonics cache auto-download config types (see .claude/future_harmonics_autodownload.md)
 };

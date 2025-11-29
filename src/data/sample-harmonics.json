@@ -1,0 +1,60 @@
+{
+  "version": "2024-phase1-sample",
+  "info": "Sample harmonic constituents for Pacific stations. Phase 2 will include comprehensive global coverage from NOAA.",
+  "stations": [
+    {
+      "id": "fiji-lautoka",
+      "name": "Lautoka (Sample)",
+      "lat": -17.6057,
+      "lon": 177.4501,
+      "timezone": "Pacific/Fiji",
+      "country": "Fiji",
+      "constituents": [
+        {"name": "M2", "amplitude": 0.502, "phase": 98.7},
+        {"name": "S2", "amplitude": 0.175, "phase": 129.3},
+        {"name": "N2", "amplitude": 0.112, "phase": 84.2},
+        {"name": "K2", "amplitude": 0.048, "phase": 131.1},
+        {"name": "K1", "amplitude": 0.312, "phase": 271.5},
+        {"name": "O1", "amplitude": 0.198, "phase": 256.8},
+        {"name": "P1", "amplitude": 0.101, "phase": 269.2},
+        {"name": "Q1", "amplitude": 0.038, "phase": 251.4}
+      ]
+    },
+    {
+      "id": "fiji-suva",
+      "name": "Suva Harbor (Sample)",
+      "lat": -18.1333,
+      "lon": 178.4333,
+      "timezone": "Pacific/Fiji",
+      "country": "Fiji",
+      "constituents": [
+        {"name": "M2", "amplitude": 0.573, "phase": 102.4},
+        {"name": "S2", "amplitude": 0.184, "phase": 134.1},
+        {"name": "N2", "amplitude": 0.128, "phase": 88.9},
+        {"name": "K2", "amplitude": 0.051, "phase": 135.8},
+        {"name": "K1", "amplitude": 0.328, "phase": 275.2},
+        {"name": "O1", "amplitude": 0.207, "phase": 260.5},
+        {"name": "P1", "amplitude": 0.106, "phase": 273.1},
+        {"name": "Q1", "amplitude": 0.041, "phase": 255.3}
+      ]
+    },
+    {
+      "id": "pacific-generic",
+      "name": "Pacific Generic Station (Sample)",
+      "lat": 0,
+      "lon": 180,
+      "timezone": "UTC",
+      "country": "Pacific Ocean",
+      "constituents": [
+        {"name": "M2", "amplitude": 0.500, "phase": 100.0},
+        {"name": "S2", "amplitude": 0.180, "phase": 130.0},
+        {"name": "N2", "amplitude": 0.120, "phase": 85.0},
+        {"name": "K2", "amplitude": 0.050, "phase": 132.0},
+        {"name": "K1", "amplitude": 0.320, "phase": 270.0},
+        {"name": "O1", "amplitude": 0.200, "phase": 255.0},
+        {"name": "P1", "amplitude": 0.100, "phase": 268.0},
+        {"name": "Q1", "amplitude": 0.040, "phase": 250.0}
+      ]
+    }
+  ]
+}

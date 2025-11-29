@@ -6,6 +6,7 @@
     "lib": ["ES2023"],
     "module": "Node16",
     "skipLibCheck": true,
+    "resolveJsonModule": true,
 
     /* Bundler mode */
     "moduleResolution": "node16",

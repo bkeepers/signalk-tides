@@ -29,6 +29,7 @@
   ],
   "license": "Apache-2.0",
   "dependencies": {
+    "@neaps/tide-predictor": "^0.1.1",
     "@react-hook/resize-observer": "^2.0.2",
     "@signalk/server-api": "^2.0",
     "geolib": "^3.3.4",
