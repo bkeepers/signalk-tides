@@ -4,11 +4,11 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "target": "ES2022",
     "lib": ["ES2023"],
-    "module": "Node16",
+    "module": "nodenext",
     "skipLibCheck": true,
 
     /* Bundler mode */
-    "moduleResolution": "node16",
+    "moduleResolution": "nodenext",
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": false,
