@@ -1,4 +1,4 @@
-import type { TideExtreme } from './types';
+import type { TideExtreme } from './types.js';
 
 /** Given a list of tide extremes, estimate the height at a specific time. */
 export function approximateTideHeightAt(extremes: TideExtreme[], time: Date): number | null {

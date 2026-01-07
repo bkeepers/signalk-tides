@@ -22,7 +22,7 @@ import type { SignalKApp, TideSource, Config, TideForecastResult } from './types
 import { approximateTideHeightAt } from './calculations.js';
 import FileCache from './cache.js';
 
-export = function (app: SignalKApp): Plugin {
+export default function (app: SignalKApp): Plugin {
   // Interval to update tide data
   const defaultPeriod = 60; // 1 hour
   let unsubscribes: (() => void)[] = [];
