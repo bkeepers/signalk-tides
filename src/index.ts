@@ -14,30 +14,23 @@
  * limitations under the License.
  */
 
-import { Context, Delta, Path, Plugin, Position, Timestamp } from '@signalk/server-api';
-import noaa from './sources/noaa.js';
-import stormglass from './sources/stormglass.js';
-import worldtides from './sources/worldtides.js';
-import type { SignalKApp, TideSource, Config, TideForecastResult } from './types.js';
-import { approximateTideHeightAt } from './calculations.js';
-import FileCache from './cache.js';
+import { Context, Delta, Path, Plugin, Position, Timestamp } from "@signalk/server-api";
+import type { SignalKApp, Config, TideForecastResult } from "./types.js";
+import { approximateTideHeightAt } from "./calculations.js";
+import FileCache from "./cache.js";
+import createSources from "./sources/index.js";
 
 export default function (app: SignalKApp): Plugin {
   // Interval to update tide data
   const defaultPeriod = 60; // 1 hour
   let unsubscribes: (() => void)[] = [];
 
-  const sources: TideSource[] = [
-    noaa(app),
-    stormglass(app),
-    worldtides(app),
-  ];
+  const sources = createSources(app);
 
   const plugin: Plugin = {
     id: "tides",
     name: "Tides",
-    description:
-      "Tidal predictions for the vessel's position from various online sources.",
+    description: "Tidal predictions for the vessel's position from various online sources.",
     schema: () => ({
       title: "Tides API",
       type: "object",
@@ -45,14 +38,17 @@ export default function (app: SignalKApp): Plugin {
         source: {
           title: "Data source",
           type: "string",
-          "anyOf": sources.map(({ id, title }) => ({
+          anyOf: sources.map(({ id, title }) => ({
             const: id,
-            title
+            title,
           })),
           default: sources[0].id,
         },
         // Update plugin schema with sources
-        ...sources.reduce((properties, source) => Object.assign(properties, source.properties ?? {}), {}),
+        ...sources.reduce(
+          (properties, source) => Object.assign(properties, source.properties ?? {}),
+          {}
+        ),
         period: {
           title: "Update frequency",
           type: "number",
@@ -60,13 +56,13 @@ export default function (app: SignalKApp): Plugin {
           default: 60,
           minimum: 1,
         },
-      }
+      },
     }),
     start,
     stop() {
       unsubscribes.forEach((f) => f());
       unsubscribes = [];
-    }
+    },
   };
 
   async function start(props: Config) {
@@ -77,7 +73,7 @@ export default function (app: SignalKApp): Plugin {
     const cache = new FileCache(app.getDataDirPath());
 
     // Use the selected source, or the first one if not specified
-    const source = sources.find(source => source.id === props.source) || sources[0];
+    const source = sources.find((source) => source.id === props.source) || sources[0];
 
     // Load the selected source
     const provider = await source.start(props);
@@ -88,7 +84,7 @@ export default function (app: SignalKApp): Plugin {
       methods: {
         async listResources(query) {
           if (!lastPosition) throw new Error("No position available");
-          return provider({ position: lastPosition, ...query })
+          return provider({ position: lastPosition, ...query });
         },
         getResource(): never {
           throw new Error("Not implemented");
@@ -98,8 +94,8 @@ export default function (app: SignalKApp): Plugin {
         },
         deleteResource(): never {
           throw new Error("Not implemented");
-        }
-      }
+        },
+      },
     });
 
     app.subscriptionmanager.subscribe(
@@ -117,14 +113,15 @@ export default function (app: SignalKApp): Plugin {
       (subscriptionError) => {
         app.error("Error:" + subscriptionError);
       },
-      updatePosition,
+      updatePosition
     );
 
     async function updatePosition() {
-      lastPosition = app.getSelfPath('navigation.position.value') || await cache.get('position') || null;
+      lastPosition =
+        app.getSelfPath("navigation.position.value") || (await cache.get("position")) || null;
 
       if (lastPosition) {
-        await cache.set('position', lastPosition);
+        await cache.set("position", lastPosition);
         await updateForecast();
       }
     }
@@ -132,13 +129,13 @@ export default function (app: SignalKApp): Plugin {
     async function updateForecast() {
       if (!lastPosition) {
         app.debug("No position available, cannot fetch tide data");
-        return
+        return;
       }
 
       try {
         lastForecast = await provider({ position: lastPosition });
         app.setPluginStatus("Updated tide forecast from " + source.title);
-        updateTides()
+        updateTides();
       } catch (e: unknown) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         app.setPluginError((e as any).message);
@@ -150,7 +147,9 @@ export default function (app: SignalKApp): Plugin {
     async function updateTides(now = new Date()) {
       if (!lastForecast) return;
       // Get the next two upcoming extremes
-      const nextTides = lastForecast.extremes.filter(({ time }) => new Date(time) >= now).slice(0, 2)
+      const nextTides = lastForecast.extremes
+        .filter(({ time }) => new Date(time) >= now)
+        .slice(0, 2);
 
       const delta: Delta = {
         context: ("vessels." + app.selfId) as Context,
