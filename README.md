@@ -206,6 +206,7 @@ $ curl http://localhost:3000/signalk/v2/api/resources/tides
 
 ## Sources
 
+- [Neaps](https://github.com/neaps/neaps) - Open source & offline tide prediction engine (US only at the moment)
 - [NOAA](https://tidesandcurrents.noaa.gov/web_services_info.html) (US only)
 - [WorldTides API](https://www.worldtides.info/) (requires an API key)
 - [StormGlass.io](https://stormglass.io/) (requires an API key)
