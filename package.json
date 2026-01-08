@@ -2,7 +2,9 @@
   "name": "signalk-tides",
   "version": "1.4.0",
   "description": "Tidal predictions for the vessel's position from various online sources.",
+  "type": "module",
   "main": "./dist/index.js",
+  "exports": "./dist/index.js",
   "scripts": {
     "build": "tsc -b && vite build",
     "dev": "vite",
